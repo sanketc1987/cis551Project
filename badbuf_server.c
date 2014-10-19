@@ -139,13 +139,6 @@ void service();
 socklen_t len;
 struct sockaddr_in cliaddr;
 
-int match(char *s1, char *s2) {
-  while( *s1 != '\0' && *s2 != 0 && *s1 == *s2 ){
-    s1++; s2++;
-  }
-  return( *s1 - *s2 );
-}
-
 void welcome(char *str) { printf(str); }
 
 void goodbye(char *str) { void exit(); printf(str); exit(1); }
