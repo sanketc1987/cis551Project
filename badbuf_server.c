@@ -3,11 +3,13 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #define SA struct sockaddr
 #define LISTENQ 5
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
 #define DELIMITER '='
 #define BUFSIZE 4096
 #define DATABASE "database"
@@ -73,10 +75,9 @@ void insert(char *name, char *password )
   if( sp == (struct data * ) NULL )
   {
       sp = (struct data *) malloc( sizeof( struct data ) );
-      if( sp == (struct data *) NULL )
-      {
-	  printf( "Fatal error: no memory\n" );
-	  exit( 1 );
+      if( sp == (struct data *) NULL ) {
+    	  printf( "Fatal error: no memory\n" );
+    	  exit( 1 );
       }
       sp->next = Head.next;
       Head.next = sp;
@@ -94,14 +95,12 @@ void write( char *file)
 
   filep = fopen( file, "w" );
 
-  if( filep == (FILE *) NULL )
-  {
+  if( filep == (FILE *) NULL ) {
       fputs( "Fatal error. Cannot Save", stderr );
       exit( 1 );
   }
 
-  for( sp = Head.next;sp != (struct data *) NULL;sp = sp->next )
-  {
+  for( sp = Head.next;sp != (struct data *) NULL;sp = sp->next ) {
       fprintf( filep, "%s%c%s",sp->username,DELIMITER,sp->password);
   }
 
@@ -116,19 +115,16 @@ void read( char *file )
 
   db = fopen( file, "r" );
 
-  if( db != (FILE *) NULL )
-    {
-      while( fgets( buf, BUFSIZE, db ) > 0 )
-	{
-	  char *ptr;
-	  //split username and password based on delimiter and insert it to the structure
-	  if( (ptr = strchr( buf, DELIMITER ) ) > 0 )
-	    {
-	      *ptr = '\0';
-	      insert( strsave( buf), strsave( ++ptr ));
-	    }
-	}
-      fclose( db );
+  if( db != (FILE *) NULL ) {
+    while( fgets( buf, BUFSIZE, db ) > 0 ) {
+  	  char *ptr;
+  	  //split username and password based on delimiter and insert it to the structure
+  	  if( (ptr = strchr( buf, DELIMITER ) ) > 0 ) {
+  	      *ptr = '\0';
+  	      insert( strsave( buf), strsave( ++ptr ));
+  	    }
+  	 }
+    fclose( db );
     }
   return;
 }
@@ -143,16 +139,6 @@ void welcome(char *str) { printf(str); }
 
 void goodbye(char *str) { void exit(); printf(str); exit(1); }
 
-void interact_client()
-{
-	char name[123],pw[123];
-	int choice=1;
-	while(1)
-	{
-		
-		
-	}	
-}
 main()
 {
   char name[123], pw[123]; /* passwords are short! */
@@ -171,18 +157,26 @@ main()
 
 void service(char *name,char *pw,char *good, char *evil) 
 {
-
   read(DATABASE);
   int listenfd;
   struct sockaddr_in servaddr;
   FILE *client_request, *client_reply;
   char buf[1000];
-  char *ip;
 
-  char localName[20];
-  int i;
-  struct hostent *he;
-  struct in_addr **addr_list;
+  struct ifaddrs *ifap, *ifa;
+  struct sockaddr_in *sa;
+  char *ipaddr;
+  getifaddrs (&ifap);
+
+  for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+      if (ifa->ifa_addr->sa_family==AF_INET) {
+          sa = (struct sockaddr_in *) ifa->ifa_addr;
+          if(strcmp(ifa->ifa_name,"wlan0")==0)
+            ipaddr = inet_ntoa(sa->sin_addr);
+      }
+  }
+
+  printf("Listening on IP: %s\n", ipaddr);
 
   listenfd = socket(AF_INET, SOCK_STREAM, 0 );
 
@@ -193,8 +187,8 @@ void service(char *name,char *pw,char *good, char *evil)
 
   bzero( &servaddr, sizeof(servaddr));
   servaddr.sin_family = AF_INET;
-  servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
   servaddr.sin_port = htons(10551);
+  inet_pton(AF_INET, ipaddr, &(servaddr.sin_addr));
 
   if( bind( listenfd, (SA *) &servaddr, sizeof(servaddr) ) < 0 ) {
       perror( "bind on listenfd");
@@ -240,21 +234,18 @@ void service(char *name,char *pw,char *good, char *evil)
     fprintf( stderr, "FROM CLIENT: %s\n", buf );
     
     if( match(name,pw) == 0 )
-    {
     	welcome( good );
-    }
     else
-    {
     	goodbye(evil );
-    }
+    
     while(fgets( buf, 1000, client_request ) != NULL) 
     {
     	fputs( "Enter your choice:", client_reply );
-	fputs("1. Insert or Update the database\n 2. Exit\n",client_reply);
-	fgets(buf, 1000, client_request);
-	fprintf( stderr, "FROM CLIENT: %s\n", buf );
-	fputs( "Server inserted new entry\n", client_reply );
-        fflush( client_reply );
+    	fputs("1. Insert or Update the database\n 2. Exit\n",client_reply);
+    	fgets(buf, 1000, client_request);
+    	fprintf( stderr, "FROM CLIENT: %s\n", buf );
+    	fputs( "Server inserted new entry\n", client_reply );
+      fflush( client_reply );
         
 	/*scanf("%d",choice);
 	switch(choice)
