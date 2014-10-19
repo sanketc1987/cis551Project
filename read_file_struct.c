@@ -28,6 +28,7 @@ char *strsave(char *str)
 	return( p );
 }
 
+//Structure to hold username and password
 
 struct data *search( char* name )
 {
@@ -40,6 +41,7 @@ struct data *search( char* name )
   return( (struct data *) NULL );
 }
 
+//check for authentic users
 int match(char *s1, char *s2)
 {
 	struct data *sp = search(s1);
@@ -51,6 +53,8 @@ int match(char *s1, char *s2)
 	}
 	return -1;
 }
+
+//insert or update username, password
 
 void insert(char *name, char *password )
 {
@@ -75,6 +79,7 @@ void insert(char *name, char *password )
   sp->password = strsave( password );
 }
 
+//write the structure to a file
 void write( char *file)
 {
   FILE *filep;
@@ -96,6 +101,7 @@ void write( char *file)
   fclose( filep );
 }
 
+//read the file contents to a structure
 void read( char *file )
 {
   FILE *db;
