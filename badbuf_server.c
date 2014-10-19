@@ -143,26 +143,36 @@ void welcome(char *str) { printf(str); }
 
 void goodbye(char *str) { void exit(); printf(str); exit(1); }
 
-main(){
+void interact_client()
+{
+	char name[123],pw[123];
+	int choice=1;
+	while(1)
+	{
+		
+		
+	}	
+}
+main()
+{
   char name[123], pw[123]; /* passwords are short! */
   char *good = "Welcome to The Machine!\n";
   char *evil = "Invalid identity, exiting!\n";
 
-  service();
+  service(name,pw,good,evil);
 
-  printf("login: "); 
+  /*printf("login: "); 
   scanf("%s", name);
   printf("password: "); 
-  scanf("%s", pw);
+  scanf("%s", pw);*/
 
-  if( match(name,pw) == 0 )
-    welcome( good );
-  else
-    goodbye(evil );
+  
 }
 
-void service() 
+void service(char *name,char *pw,char *good, char *evil) 
 {
+
+  read(DATABASE);
   int listenfd;
   struct sockaddr_in servaddr;
   FILE *client_request, *client_reply;
@@ -217,11 +227,55 @@ void service()
       perror( "fdopen of client_reply" );
       exit( 1 );
     }
-
-   while(fgets( buf, 1000, client_request ) != NULL) {
-    	fprintf( stderr, "FROM CLIENT: %s\n", buf );
-  	fputs( "Server inserted new entry\n", client_reply );
-          fflush( client_reply );
+    
+    fputs( "login:", client_reply );
+    fprintf(stderr,"sent login");
+    if(fgets( buf, 1000, client_request ) != NULL) 
+    	name = buf;
+    fprintf( stderr, "FROM CLIENT: %s\n", buf );
+    
+    fputs( "password:", client_reply );
+    if(fgets( buf, 1000, client_request ) != NULL) 
+    	pw = buf;
+    fprintf( stderr, "FROM CLIENT: %s\n", buf );
+    
+    if( match(name,pw) == 0 )
+    {
+    	welcome( good );
+    }
+    else
+    {
+    	goodbye(evil );
+    }
+    while(fgets( buf, 1000, client_request ) != NULL) 
+    {
+    	fputs( "Enter your choice:", client_reply );
+	fputs("1. Insert or Update the database\n 2. Exit\n",client_reply);
+	fgets(buf, 1000, client_request);
+	fprintf( stderr, "FROM CLIENT: %s\n", buf );
+	fputs( "Server inserted new entry\n", client_reply );
+        fflush( client_reply );
+        
+	/*scanf("%d",choice);
+	switch(choice)
+	{
+		case 1:
+			printf("Enter the username\n");
+			scanf("%s",name);
+			printf("Enter the password\n");
+			scanf("%s",pw);
+			insert(name,pw);
+			break;
+		case 2:
+			close(connection_fd);
+			return;
+			break;
+		default:
+			printf("Invalid Choice\n");
+					
+	}*/
+     	
+  	
     }
   }
 }
