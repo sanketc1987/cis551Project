@@ -58,40 +58,76 @@ main( int argc, char *argv[] )
 	
 	printf("\n Connected!\n");
 
-	/* setup the interfaces between the new socket and stdio system */
-	server_request = fdopen( sockfd, "w" );
-	if( server_request == (FILE *) NULL )
-	{
-		perror( "fdopen of stream for server requests" );
-		exit( 2 );
-	}
-	server_reply = fdopen( sockfd, "r" );
-	if( server_reply == (FILE *) NULL )
-	{
-		perror( "fdopen of stream for server replies" );
-		exit( 3 );
-	}
-
+	printf("\nAfter setting up interfaces\n");
 	/* The main interactive loop, getting input from the user and 
 	* passing to the server, and presenting replies from the server to
 	* the user, as appropriate. Lots of opportunity to generalize
 	* this primitive user interface...
 	*/
+	//display login
+	if(recv(sockfd,(char*)buf,sizeof(buf),0)>0) 
+    		fprintf(stdout,buf);
+    	fflush(stdout);
+    	//read username from keyboard
+	int n = read(fileno(stdin),buf,BUFSIZE);
+	if(n<0)
+		perror("Read");
+	buf[n]='\0';
+	send(sockfd,buf,n,0);
 	
-	while(strcmp(fgets( buf, BUFSIZE, stdin), "exit") != 0)
+	//display password
+	if(recv(sockfd,(char*)buf,sizeof(buf),0)>0) 
+    		fprintf(stdout,buf);
+    	fflush(stdout);
+    	//read password from keyboard
+	n = read(fileno(stdin),buf,BUFSIZE);
+	if(n<0)
+		perror("Read");
+	buf[n]='\0';
+	fprintf(stderr,"Entered password: %s",buf);
+	send(sockfd,buf,n,0);
+	
+	
+	while(1)
 	{
+		
+		
+		//take input from keyboard
+		fflush(stdout);
+		//display login
+		fgets(buf,BUFSIZE,server_reply);
+		fputs(buf,stdout);
+		fflush(stdout);
+		
+		//get user name from keyboard
+		fgets(buf,BUFSIZE,stdin);
 		if( fputs( buf, server_request ) == EOF )
 		{
 			perror( "write failure to associative memory at server" );
 		}
-		fflush( server_request );  /* buffering everywhere.... */
+		fflush(server_request); 
+		
+		if( fgets( buf, sizeof(buf), server_reply ) == NULL )
+		{
+			perror( "read failure from associative memory at server");
+		}	
+
+
+	}
+	/*while(strcmp(fgets( buf, BUFSIZE, stdin), "exit") != 0)
+	{
+		printf("Inside while");
+		if( fputs( buf, server_request ) == EOF )
+		{
+			perror( "write failure to associative memory at server" );
+		}
+		 
 		
 		if( fgets( buf, BUFSIZE, server_reply ) == NULL )
 		{
 			perror( "read failure from associative memory at server");
-		}
-		fputs( buf, stdout );		
-	}
+		}			
+	}*/
 	
 	/* shut things down */
 	fclose( server_request );
