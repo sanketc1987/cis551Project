@@ -20,9 +20,8 @@
 main( int argc, char *argv[] )
 {
 	char buf[BUFSIZE];
-	int sockfd;
+	int sockfd, n;
 	struct sockaddr_in servaddr;
-	FILE *server_request, *server_reply;
 
 	/* Check if invoked correctly */
 	if( argc != 2 )
@@ -66,59 +65,31 @@ main( int argc, char *argv[] )
 	* this primitive user interface...
 	*/
 	//display login
-	
-	//receive the login: prompt from server 
-	if(recv(sockfd,(char*)buf,BUFSIZE,0)>0) 
-		fprintf(stdout,buf); //print the server message to the screen
-	fflush(stdout);
-	
-	
-	//read user input from keyboard
-	int n = read(fileno(stdin),buf,BUFSIZE);
-	if(n<0)
-		perror("Read");
-	buf[n-1]='\0';
-	send(sockfd,buf,n,0);
-	
-	//receive the password: from server 
-	if(recv(sockfd,(char*)buf,BUFSIZE,0)>0) 
-		fprintf(stdout,buf); //print the server message to the screen
-	fflush(stdout);
-	
-	
-	//read user input from keyboard
-	int n = read(fileno(stdin),buf,BUFSIZE);
-	if(n<0)
-		perror("Read");
-	buf[n-1]='\0';
-	send(sockfd,buf,n,0);
-	
-	//receive the message from server 
-	if(recv(sockfd,(char*)buf,BUFSIZE,0)>0) 
-		fprintf(stdout,buf); //print the server message to the screen
-	fflush(stdout);
-	
-	if(strcmp(buf, "Welcome to The Machine!\n") == 0)
+		
+	while(strcmp(buf, "2") != 0)
 	{
-		while(1)
-		{
-			//receive the message from server 
-			if(recv(sockfd,(char*)buf,BUFSIZE,0)>0) 
-				fprintf(stdout,buf); //print the server message to the screen
-			fflush(stdout);
+		strcpy(buf, "");
+		//receive the message from server 
+		n = recv(sockfd,(char*)buf,BUFSIZE,0);
+		if(n<0)
+			perror("Recv");
+		buf[n]='\0';
+		fprintf(stdout, buf);
+		fflush(stdout);
+		
+		//read user input from keyboard
+		n = read(fileno(stdin),buf,BUFSIZE);
+		if(n<0)
+			perror("Read");
+		buf[n-1]='\0';
+		send(sockfd,buf,n,0);
 
-			//read user input from keyboard
-			int n = read(fileno(stdin),buf,BUFSIZE);
-			if(n<0)
-				perror("Read");
-			buf[n-1]='\0';
-			send(sockfd,buf,n,0);
-		}
-	}		
+	}
+		
 	/* shut things down */
-	fclose( server_request );
-	fclose( server_reply );
+	//fclose( server_request );
+	//fclose( server_reply );
 	close( sockfd); 
-
+	printf("\nExit client\n");
 	exit( 0 );
 }
