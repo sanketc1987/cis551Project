@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include "strings.h"
 
+
 #define EOS '\0'
 
 #define SA struct sockaddr
@@ -65,70 +66,55 @@ main( int argc, char *argv[] )
 	* this primitive user interface...
 	*/
 	//display login
-	if(recv(sockfd,(char*)buf,sizeof(buf),0)>0) 
-    		fprintf(stdout,buf);
-    	fflush(stdout);
-    	//read username from keyboard
+	
+	//receive the login: prompt from server 
+	if(recv(sockfd,(char*)buf,BUFSIZE,0)>0) 
+		fprintf(stdout,buf); //print the server message to the screen
+	fflush(stdout);
+	
+	
+	//read user input from keyboard
 	int n = read(fileno(stdin),buf,BUFSIZE);
 	if(n<0)
 		perror("Read");
-	buf[n]='\0';
+	buf[n-1]='\0';
 	send(sockfd,buf,n,0);
 	
-	//display password
-	if(recv(sockfd,(char*)buf,sizeof(buf),0)>0) 
-    		fprintf(stdout,buf);
-    	fflush(stdout);
-    	//read password from keyboard
-	n = read(fileno(stdin),buf,BUFSIZE);
+	//receive the password: from server 
+	if(recv(sockfd,(char*)buf,BUFSIZE,0)>0) 
+		fprintf(stdout,buf); //print the server message to the screen
+	fflush(stdout);
+	
+	
+	//read user input from keyboard
+	int n = read(fileno(stdin),buf,BUFSIZE);
 	if(n<0)
 		perror("Read");
-	buf[n]='\0';
-	fprintf(stderr,"Entered password: %s",buf);
+	buf[n-1]='\0';
 	send(sockfd,buf,n,0);
 	
+	//receive the message from server 
+	if(recv(sockfd,(char*)buf,BUFSIZE,0)>0) 
+		fprintf(stdout,buf); //print the server message to the screen
+	fflush(stdout);
 	
-	while(1)
+	if(strcmp(buf, "Welcome to The Machine!\n") == 0)
 	{
-		
-		
-		//take input from keyboard
-		fflush(stdout);
-		//display login
-		fgets(buf,BUFSIZE,server_reply);
-		fputs(buf,stdout);
-		fflush(stdout);
-		
-		//get user name from keyboard
-		fgets(buf,BUFSIZE,stdin);
-		if( fputs( buf, server_request ) == EOF )
+		while(1)
 		{
-			perror( "write failure to associative memory at server" );
-		}
-		fflush(server_request); 
-		
-		if( fgets( buf, sizeof(buf), server_reply ) == NULL )
-		{
-			perror( "read failure from associative memory at server");
-		}	
+			//receive the message from server 
+			if(recv(sockfd,(char*)buf,BUFSIZE,0)>0) 
+				fprintf(stdout,buf); //print the server message to the screen
+			fflush(stdout);
 
-
-	}
-	/*while(strcmp(fgets( buf, BUFSIZE, stdin), "exit") != 0)
-	{
-		printf("Inside while");
-		if( fputs( buf, server_request ) == EOF )
-		{
-			perror( "write failure to associative memory at server" );
+			//read user input from keyboard
+			int n = read(fileno(stdin),buf,BUFSIZE);
+			if(n<0)
+				perror("Read");
+			buf[n-1]='\0';
+			send(sockfd,buf,n,0);
 		}
-		 
-		
-		if( fgets( buf, BUFSIZE, server_reply ) == NULL )
-		{
-			perror( "read failure from associative memory at server");
-		}			
-	}*/
-	
+	}		
 	/* shut things down */
 	fclose( server_request );
 	fclose( server_reply );

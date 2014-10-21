@@ -53,23 +53,24 @@ struct data *search( char* name )
 //check for authentic users
 int match(char *s1, char *s2)
 {
+	printf("\n**match() is called\n");
+	if(Head.next == (struct data *) NULL)
+	{
+		insert(s1, s2);
+		return 0;
+	}
 	fprintf(stdout,"USer: %s, Pw: %s\n",s1,s2);
 	struct data *sp = search(s1);
-	
-	/*for( sp = Head.next;sp != (struct data *) NULL;sp = sp->next )
-	{
-      		fprintf( stdout, "%s %s",sp->username, sp->password);
-      		fflush(stdout);
-  	}*/
+
 	if(sp!=(struct data *) NULL)
 	{
+		 printf("entered username: %s\n", s1);
+		 printf("usrnm in struct: %s\n", sp->username);
+		 printf("entered pw: %s\n", s2);
+		 printf("pw in struct: %s\n", sp->password);
+		 
 		 if((strcmp(sp->username,s1)==0) && (strcmp(sp->password,s2)==0))
 		 	return 0;
-		 /*int n1 = strcmp(sp->username,s1);
-		 int n2 = strcmp(sp->password,s2);
-		 int len1 = strlen(sp->password);
-		 int len2 = strlen(s2);
-		 fprintf(stdout,"%d %d\n",n1,n2);*/
 	}
 	return -1;
 }
@@ -112,7 +113,7 @@ void write( char *file)
   }
 
   for( sp = Head.next;sp != (struct data *) NULL;sp = sp->next ) {
-      fprintf( filep, "%s%c%s",sp->username,DELIMITER,sp->password);
+      fprintf( filep, "%s%c%s\n",sp->username,DELIMITER,sp->password);
   }
 
   fclose( filep );
@@ -121,29 +122,34 @@ void write( char *file)
 //read the file contents to a structure
 void read( char *file )
 {
-  FILE *db;
-  char buf[BUFSIZE];
+	FILE *db;
+	char buf[BUFSIZE];
 
-  db = fopen( file, "r" );
+	db = fopen( file, "r" );
 
-  if( db != (FILE *) NULL ) {
-    while( fgets( buf, BUFSIZE, db ) > 0 ) {
-  	  char *ptr;
-  	  //split username and password based on delimiter and insert it to the structure
-  	  if( (ptr = strchr( buf, DELIMITER ) ) > 0 ) {
-  	      *ptr = '\0';
-  	      ptr[strlen(ptr+1)]='\0';
-  	      fprintf(stdout,"Length in file: %d %d",strlen(buf),strlen(ptr+1));
-  	      insert( strsave( buf), strsave( ++ptr ));
-  	    }
-  	 }
-    fclose( db );
-    }
-    /*struct data *sp;
-    for( sp = Head.next;sp != (struct data *) NULL;sp = sp->next ) {
-      fprintf( stdout, "%s %s",sp->username, sp->password);
-      fflush(stdout);
-  }*/
+	if( db != (FILE *) NULL ) 
+	{
+		printf("\ncontents of the file:\n");
+		while( fgets( buf, BUFSIZE, db ) > 0 ) 
+		{
+			printf("%s\n", buf);
+			char *ptr;
+			//split username and password based on delimiter and insert it to the structure
+			if( (ptr = strchr( buf, DELIMITER ) ) > 0 ) 
+			{
+				*ptr = '\0';
+				ptr[strlen(ptr+1)]='\0';
+				fprintf(stdout,"Length in file: %d %d",strlen(buf),strlen(ptr+1));
+				insert( strsave( buf), strsave( ++ptr ));
+			}
+		}
+		fclose( db );
+	}
+	/*struct data *sp;
+	for( sp = Head.next;sp != (struct data *) NULL;sp = sp->next ) {
+	fprintf( stdout, "%s %s",sp->username, sp->password);
+	fflush(stdout);
+	}*/
 }
 
 
@@ -152,9 +158,22 @@ void service();
 socklen_t len;
 struct sockaddr_in cliaddr;
 
-void welcome(char *str) { send(connection_fd,str,sizeof(str),0); }
+void welcome(char *str) 
+{ 
+	if(send(connection_fd,str,strlen(str),0) == -1)
+		fprintf(stderr, "Server: Failure sending message\n"); 
+	//bzero(str, strlen(str));
+}
 
-void goodbye(char *str) { send(connection_fd,str,sizeof(str),0); close(connection_fd); }
+void goodbye(char *str) 
+{ 
+	if(send(connection_fd,str,strlen(str),0) == -1)
+		fprintf(stderr, "Server: Failure sending message\n");
+	//bzero(str, strlen(str));
+	close(connection_fd); 
+	write(DATABASE);
+	exit(0);
+}
 
 main()
 {
@@ -175,122 +194,173 @@ main()
 
 void service(char *name,char *pw,char *good, char *evil) 
 {
-  read(DATABASE);
-  int listenfd;
-  struct sockaddr_in servaddr;
-  FILE *client_request, *client_reply;
-  char buf[1000];
+	read(DATABASE);
+	int listenfd;
+	struct sockaddr_in servaddr;
+	FILE *client_request, *client_reply;
+	char buf[BUFSIZE];
 
-  struct ifaddrs *ifap, *ifa;
-  struct sockaddr_in *sa;
-  char *ipaddr;
-  getifaddrs (&ifap);
+	struct ifaddrs *ifap, *ifa;
+	struct sockaddr_in *sa;
+	char *ipaddr;
+	getifaddrs (&ifap);
 
-  for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-      if (ifa->ifa_addr->sa_family==AF_INET) {
-          sa = (struct sockaddr_in *) ifa->ifa_addr;
-          if(strcmp(ifa->ifa_name,"wlan0")==0)
-            ipaddr = inet_ntoa(sa->sin_addr);
-      }
-  }
-
-  printf("Listening on IP: %s\n", ipaddr);
-
-  listenfd = socket(AF_INET, SOCK_STREAM, 0 );
-
-  if( listenfd < 0 ) {
-      perror("creating socket for listenfd");
-      exit(2);
-  }
-
-  bzero( &servaddr, sizeof(servaddr));
-  servaddr.sin_family = AF_INET;
-  servaddr.sin_port = htons(10551);
-  //Change to work on any IP
-  //inet_pton(AF_INET, ipaddr, &(servaddr.sin_addr));
- servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  if( bind( listenfd, (SA *) &servaddr, sizeof(servaddr) ) < 0 ) {
-      perror( "bind on listenfd");
-      exit(3);
-  }
-
-  if( listen( listenfd, LISTENQ ) < 0 ) {
-      perror( "listen on listenfd" );
-      exit(4);
-  }
-
-  while(1) {
-      len = sizeof( cliaddr );
-      connection_fd = accept( listenfd, (SA *) &cliaddr, &len );
-      fprintf(stderr, "Client connected\n");
-
-      if( connection_fd < 0 ) {
-        perror( "accept on server_fd" );
-        exit(1);
-      }
-    char *msg = "login:";
-    send(connection_fd,msg,7,0);
-    
-    
-    //to do strcpy read username
-    int n = recv(connection_fd,(char*)buf,sizeof(buf),0);
-    fflush(stdout);
-    if(n<0)
-    	perror("Recv");
-    buf[n-1]='\0';
-    strcpy(name,buf);
-    fprintf(stdout,"Name: %s Length: %d\n",name,strlen(name));
-    fflush(stdout);
-    
-    msg="password:";
-    send(connection_fd,msg,10,0);
-    
-    //to do strcpy read password
-    n = recv(connection_fd,(char*)buf,sizeof(buf),0);
-    fflush(stdout);
-    if(n<0)
-    	perror("Recv");
-    buf[n-1]='\0';
-    strcpy(pw,buf);
-    fprintf(stdout,"Password: %s Length: %d\n",pw,strlen(pw));
-    fflush(stdout);
-    
-    if( match(name,pw) == 0 )
-    	welcome( good );
-    else
-    	goodbye(evil );
-    printf("before 2nd while\n");
-    /*while(fgets( buf, 1000, client_request ) != NULL) 
-    {
-    	fputs( "Enter your choice:", client_reply );
-    	fputs("1. Insert or Update the database\n 2. Exit\n",client_reply);
-    	fgets(buf, 1000, client_request);
-    	fprintf( stderr, "FROM CLIENT: %s\n", buf );
-    	fputs( "Server inserted new entry\n", client_reply );
-      	fflush( client_reply );
-        
-	/*scanf("%d",choice);
-	switch(choice)
+	for (ifa = ifap; ifa; ifa = ifa->ifa_next) 
 	{
-		case 1:
-			printf("Enter the username\n");
-			scanf("%s",name);
-			printf("Enter the password\n");
-			scanf("%s",pw);
-			insert(name,pw);
-			break;
-		case 2:
-			close(connection_fd);
-			return;
-			break;
-		default:
-			printf("Invalid Choice\n");
-					
+		if (ifa->ifa_addr->sa_family==AF_INET) 
+		{
+			sa = (struct sockaddr_in *) ifa->ifa_addr;
+			if(strcmp(ifa->ifa_name,"wlan0")==0)
+				ipaddr = inet_ntoa(sa->sin_addr);	
+		}
 	}
-     	
-  	
-    }*/
-	//TO DO clean connections 
-	//close(connection_fd);
-  }
+
+	printf("Listening on IP: %s\n", ipaddr);
+
+	listenfd = socket(AF_INET, SOCK_STREAM, 0 );
+
+	if( listenfd < 0 ) {
+		perror("creating socket for listenfd");
+		exit(2);
+	}
+
+	bzero( &servaddr, sizeof(servaddr));
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_port = htons(10551);
+	//Change to work on any IP
+	//inet_pton(AF_INET, ipaddr, &(servaddr.sin_addr));
+	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	if( bind( listenfd, (SA *) &servaddr, sizeof(servaddr) ) < 0 ) 
+	{
+		perror( "bind on listenfd");
+		exit(3);
+	}
+
+	if( listen( listenfd, LISTENQ ) < 0 ) 
+	{
+		perror( "listen on listenfd" );
+		exit(4);
+	}
+
+	while(1) 
+	{
+		len = sizeof( cliaddr );
+		connection_fd = accept( listenfd, (SA *) &cliaddr, &len );
+		fprintf(stderr, "Client connected\n");
+
+		if( connection_fd < 0 ) 
+		{
+			perror( "accept on server_fd" );
+			exit(1);
+		}
+		
+		char *msg = "login: ";
+		if(send(connection_fd,msg,strlen(msg),0) == -1)
+			fprintf(stderr, "Server: Failure sending message\n");
+		//bzero(msg, strlen(msg));
+
+
+		//to do strcpy read username
+		int n = recv(connection_fd,(char*)buf,BUFSIZE,0);
+		//fflush(stdout);
+		if(n<0)
+			perror("Recv");
+		buf[n-1]='\0';
+		strcpy(name,buf);
+		fprintf(stdout,"\nServer: Name: %s Length: %d\n",name,strlen(name));
+		fflush(stdout);
+		
+		msg="password: ";
+		if(send(connection_fd,msg,strlen(msg),0) == -1)
+			fprintf(stderr, "Server: Failure sending message\n");
+		//bzero(msg, strlen(msg));
+
+		//to do strcpy read password
+		n = recv(connection_fd,(char*)buf,BUFSIZE,0);
+		//fflush(stdout);
+		if(n<0)
+			perror("Recv");
+		buf[n-1]='\0';
+		strcpy(pw,buf);
+		fprintf(stdout,"Server: Password: %s Length: %d\n",pw,strlen(pw));
+		fflush(stdout);
+
+		if( match(name,pw) == 0 )
+			welcome( good );
+		else
+			goodbye(evil );
+
+		printf("before 2nd while\n");
+			
+		msg[0] = '\0';
+		msg = "Enter your choice: \n1. Insert or Update the database\n 2. Exit\n" ;
+		if(send(connection_fd,msg,strlen(msg),0) == -1)
+			fprintf(stderr, "Server: Failure sending message\n");
+	
+		
+		//while(1) 
+		//{	
+			n = recv(connection_fd,(char*)buf,BUFSIZE,0);
+			//fflush(stdout);
+			if(n<0)
+				perror("Recv");
+			buf[n-1]='\0';
+			fprintf( stdout, "Serever: option selected: %s : %d\n", buf, strlen(buf));
+			fflush(stdout);
+			
+			if(strcmp(buf, "1") == 0)
+			{
+				printf("1 slected\n");
+				msg[0] = '\0';
+				msg = "Enter the username: ";
+				if(send(connection_fd,msg,strlen(msg),0) == -1)
+					fprintf(stderr, "Server: Failure sending message\n");
+				
+				n = recv(connection_fd,(char*)buf,BUFSIZE,0);
+				fflush(stdout);
+				if(n<0)
+					perror("Recv");
+				buf[n-1]='\0';
+				printf("username client entered: %s\n", buf);
+				
+				char *nm; 
+				strcpy(nm, buf);
+				
+				msg[0] = '\0';
+				msg = "Enter the password: ";
+				if(send(connection_fd,msg,strlen(msg),0) == -1)
+					fprintf(stderr, "Server: Failure sending message\n");
+				//bzero(msg, strlen(msg));
+
+				n = recv(connection_fd,(char*)buf,BUFSIZE,0);
+				fflush(stdout);
+				if(n<0)
+					perror("Recv");
+				buf[n-1]='\0';
+				printf("password client entered: %s\n", buf);
+
+				char *pass; 
+				strcpy(pass, buf);
+
+				insert(nm, pass);
+				msg[0] = '\0';
+				msg = "Server inserted new entry\n";
+				if(send(connection_fd,msg,strlen(msg),0) == -1)
+					fprintf(stderr, "Server: Failure sending message\n");
+				
+				write(DATABASE);
+				close(connection_fd);
+				//bzero(msg, strlen(msg));
+			}
+			else if(strcmp(buf, "2") == 0)
+			{
+				printf("2 slected\n");
+				write(DATABASE);
+				close(connection_fd);
+				printf("Closing the connection\n");
+				//break;
+			}
+		//}
+		
+	}
 }
